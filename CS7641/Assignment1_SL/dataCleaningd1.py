@@ -1,6 +1,6 @@
 ## Importing libraries
 import yfinance as yf
-import pandas_datareader as pd
+import pandas as pd
 import datetime as dt
 import numpy as np
 from absl import flags, app
@@ -11,44 +11,40 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("start", '2005-01-03', "Enter a start date: ")
 flags.DEFINE_string("end", '2016-12-31', "Enter an end date: ")
 flags.DEFINE_string("ticker", '^GSPC', "Enter a ticker symbol: ")
-# flags.DEFINE_string("dataSet","/Users/tanvirsethi/Desktop/Almost all Docs/Georgia Institute of Technology-MSCS/GeorgiaTech/Spring'24/CS7641/Assignment1_SL/^GSPC.csv", "Input a dataset")
+flags.DEFINE_string("location", os.getcwd(), "Enter your preferred output filepath: ")
+
 
 ## To download data
-def data_download(start,end,ticker):
-    download_df = yf.download(ticker,start,end)
-    save_loc = os.getcwd()
+def data_download(start, end, ticker, save_loc):
+    download_df = yf.download(ticker, start, end)
 
     try:
-        TEMP = download_df.copy(deep=True)
-        TEMP = TEMP.dropna()
-        TEMP.to_csv(save_loc+"/"+ticker+".csv")
-    except:
-        print("Unable to load data for {}".format("SP500"))
+        download_df.to_csv(os.path.join(save_loc, f"{ticker}.csv"))  # Save directly without creating a copy
+    except Exception as e:
+        print(f"Unable to save data for {ticker}. Error: {e}")
 
-    return
+def cleanup_date_and_save(ticker, save_loc):
+    df = pd.read_csv(os.path.join(save_loc, f"{ticker}.csv"))
+    df['Date'] = pd.to_datetime(df['Date'])  # Convert 'Date' to datetime format
+    df['Date'] = df['Date'].dt.strftime('%Y%m%d').astype(int)  # Format and convert to int
 
+    # Save cleaned DataFrame to a new CSV file
+    cleaned_csv_path = os.path.join(save_loc, f"cleaned_{ticker}.csv")
+    df.to_csv(cleaned_csv_path, index=False)
 
-## To read the downloaded dataset and removig null values
-# def readAndClean(dataSet):
-#     df = pd.DataReader(dataSet)
-#     df = df.dropna()
+    return cleaned_csv_path
 
-## Data Cleaning
-# def cleaner(argv):
-    
 def main(argv):
     start = FLAGS.start
     end = FLAGS.end
     ticker = FLAGS.ticker
-    # dataSet = FLAGS.dataSet
-    dd = data_download(start,end,ticker)
-    # if dd:
-    #     dt = readAndClean(dataSet)
-    # else:
-    #     print("There is no data set to clean in this filepath.")
-    return
-    
+    save_loc = FLAGS.location
 
+    data_download(start, end, ticker, save_loc)
+
+    cleaned_csv_path = cleanup_date_and_save(ticker, save_loc)
+
+    print(f"Cleaned DataFrame saved to: {cleaned_csv_path}")
 
 if __name__ == '__main__':
     app.run(main)
